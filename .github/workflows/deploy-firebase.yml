@@ -1,0 +1,50 @@
+# =============================================================================
+# Firebase Hosting Deploy — deploy web app to Firebase Hosting
+# =============================================================================
+#
+# Copy into your repo. Builds and deploys to Firebase Hosting with
+# optional PR preview channels.
+#
+# Prerequisites:
+#   - firebase.json + .firebaserc at repo root
+#   - FIREBASE_TOKEN secret or WIF (Workload Identity Federation)
+# =============================================================================
+
+name: Deploy Firebase
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        if: hashFiles('package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install and build
+        if: hashFiles('package.json') != ''
+        run: |
+          npm ci
+          npm run build 2>/dev/null || echo "No build script"
+
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || 'live' }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}

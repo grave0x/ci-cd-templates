@@ -1,0 +1,51 @@
+# =============================================================================
+# Cloudflare Pages Deploy — deploy static site to Cloudflare Pages
+# =============================================================================
+#
+# Copy into your repo. Builds and deploys to Cloudflare Pages.
+#
+# Prerequisites:
+#   - CLOUDFLARE_API_TOKEN secret with Pages write permission
+#   - CLOUDFLARE_ACCOUNT_ID secret or var
+#   - A Cloudflare Pages project already created
+# =============================================================================
+
+name: Deploy Cloudflare Pages
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        if: hashFiles('package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install and build
+        if: hashFiles('package.json') != ''
+        run: |
+          npm ci
+          npm run build 2>/dev/null || echo "No build script"
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: |
+            pages deploy ./build ./dist ./public . --project-name=${{ github.event.repository.name }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

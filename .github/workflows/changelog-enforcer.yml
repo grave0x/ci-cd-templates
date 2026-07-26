@@ -1,0 +1,80 @@
+# =============================================================================
+# Changelog Enforcer — require changelog entry for user-facing changes
+# =============================================================================
+#
+# Copy into your repo. Fails PRs that modify source files without adding
+# a changelog entry. Only required when the PR touches production code
+# (excludes docs, CI, tests, config).
+# =============================================================================
+
+name: Changelog Enforcer
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, labeled, unlabeled]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Check for changelog entry
+        id: check
+        run: |
+          # Files that count as changelog entries
+          CHANGELOG_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD -- 'CHANGELOG.md' 'CHANGELOG*' 'changelog*' 2>/dev/null || echo "")
+          if [ -n "$CHANGELOG_FILES" ]; then
+            echo "has_changelog=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changelog=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Source files that trigger the requirement
+          SOURCE_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD -- \
+            ':!*.md' ':!*.yml' ':!*.yaml' ':!.github/**' ':!docs/**' ':!tests/**' ':!test/**' \
+            ':!*.spec.*' ':!*.test.*' 2>/dev/null || echo "")
+          if [ -n "$SOURCE_FILES" ]; then
+            echo "has_source_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_source_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post reminder
+        if: steps.check.outputs.has_changelog == 'false' && steps.check.outputs.has_source_changes == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## Changelog Entry Required\n\nThis PR modifies source files but doesn't include a changelog entry. Please add a brief note to \`CHANGELOG.md\` describing what changed and why.\n\n_If this is a non-user-facing change (refactor, CI, tests, docs), add the \`skip-changelog\` label to bypass this check._`;
+
+            // Only comment once per PR
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const alreadyCommented = comments.some(c => c.body.includes('Changelog Entry Required'));
+            if (!alreadyCommented) {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body
+              });
+            }
+
+      - name: Fail check
+        if: |
+          steps.check.outputs.has_changelog == 'false' &&
+          steps.check.outputs.has_source_changes == 'true' &&
+          !contains(github.event.pull_request.labels.*.name, 'skip-changelog')
+        run: |
+          echo "ERROR: Changelog entry is required. Add a CHANGELOG.md entry or add the 'skip-changelog' label."
+          exit 1

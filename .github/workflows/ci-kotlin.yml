@@ -1,0 +1,62 @@
+# =============================================================================
+# Kotlin CI — quality gate for Kotlin projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: build.gradle.kts at repo root
+#
+# What it does:
+#   - ktlint (format check)
+#   - detekt (lint)
+#   - gradle test
+#   - gradle jar
+# =============================================================================
+
+name: CI (Kotlin)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [17, 21]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: gradle
+
+      - name: Grant Gradle wrapper permission
+        run: chmod +x gradlew 2>/dev/null || true
+
+      - name: Format check (ktlint)
+        run: |
+          ./gradlew ktlintCheck 2>/dev/null \
+            || gradle ktlintCheck 2>/dev/null \
+            || echo "ktlint not configured"
+        continue-on-error: true
+
+      - name: Lint (detekt)
+        run: |
+          ./gradlew detekt 2>/dev/null \
+            || gradle detekt 2>/dev/null \
+            || echo "detekt not configured"
+        continue-on-error: true
+
+      - name: Test
+        run: ./gradlew test 2>/dev/null || gradle test
+
+      - name: Package
+        run: ./gradlew jar 2>/dev/null || gradle jar

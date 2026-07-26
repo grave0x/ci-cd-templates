@@ -1,0 +1,44 @@
+# =============================================================================
+# PR Size Label — auto-label PRs by size (XS/S/M/L/XL)
+# =============================================================================
+#
+# Copy into your repo. Adds a label based on the number of lines changed.
+# Helps reviewers quickly gauge PR complexity.
+#
+# Thresholds (configurable via vars):
+#   XS: 0-9 lines
+#   S:  10-49 lines
+#   M:  50-249 lines
+#   L:  250-999 lines
+#   XL: 1000+ lines
+# =============================================================================
+
+name: PR Size Label
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  size-label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        continue-on-error: true
+
+      - name: Label by size
+        uses: pascalgn/size-label-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          sizes: >
+            {
+              "0": "XS",
+              "10": "S",
+              "50": "M",
+              "250": "L",
+              "1000": "XL"
+            }

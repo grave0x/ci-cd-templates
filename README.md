@@ -41,6 +41,26 @@ That's it. The pipeline runs automatically on every push and pull request.
 | Terraform / OpenTofu | [`ci-terraform.yml`](.github/workflows/ci-terraform.yml) | `fmt -check` → `validate` → `Checkov scan` → `plan` |
 | Kubernetes | [`ci-kubernetes.yml`](.github/workflows/ci-kubernetes.yml) | `kubeconform` schema validation → `kubesec` scan → `pluto` deprecation check |
 | Ruby / Rails | [`ci-ruby.yml`](.github/workflows/ci-ruby.yml) | `rubocop` → `brakeman` → `rspec` → DB migration → assets precompile |
+| Elixir / Phoenix | [`ci-elixir.yml`](.github/workflows/ci-elixir.yml) | `mix format` → `credo` → `dialyzer` → `mix test` → compile |
+| Deno | [`ci-deno.yml`](.github/workflows/ci-deno.yml) | `deno fmt --check` → `deno lint` → `deno check` → `deno test` |
+| Zig | [`ci-zig.yml`](.github/workflows/ci-zig.yml) | `zig fmt --check` → `zig build test` → `zig build` |
+| Flutter / Dart | [`ci-flutter.yml`](.github/workflows/ci-flutter.yml) | `dart format` → `flutter analyze` → `flutter test` → `flutter build web` |
+| .NET / C# | [`ci-dotnet.yml`](.github/workflows/ci-dotnet.yml) | `dotnet format` → `dotnet build` → `dotnet test` → `dotnet pack` |
+| Haskell (Stack) | [`ci-haskell.yml`](.github/workflows/ci-haskell.yml) | `hlint` → `stack test` → `stack build` |
+| Scala (sbt) | [`ci-scala.yml`](.github/workflows/ci-scala.yml) | `scalafmt` → `sbt test` → `sbt package` |
+| OCaml (dune) | [`ci-ocaml.yml`](.github/workflows/ci-ocaml.yml) | `ocamlformat` → `dune build` → `dune runtest` |
+| Kotlin | [`ci-kotlin.yml`](.github/workflows/ci-kotlin.yml) | `ktlint` → `detekt` → `gradle test` → `gradle jar` |
+| Crystal | [`ci-crystal.yml`](.github/workflows/ci-crystal.yml) | `crystal tool format` → `crystal spec` → `crystal build --release` |
+
+### Infrastructure CI
+
+| Platform | File | Quality Gates |
+|----------|------|---------------|
+| Ansible | [`ci-ansible.yml`](.github/workflows/ci-ansible.yml) | `yamllint` → `ansible-lint` → `molecule test` |
+| Pulumi | [`ci-pulumi.yml`](.github/workflows/ci-pulumi.yml) | `pulumi preview` (PR) → `pulumi up` (push) |
+| AWS CDK | [`ci-cdk.yml`](.github/workflows/ci-cdk.yml) | `cdk synth` → `cdk diff` → `cdk deploy` |
+| Helm | [`ci-helm.yml`](.github/workflows/ci-helm.yml) | `helm lint` → `helm template` → `helm push` (tag) |
+| Packer | [`ci-packer.yml`](.github/workflows/ci-packer.yml) | `packer fmt --check` → `packer validate` → `packer build` |
 
 ### Release Pipelines
 
@@ -52,6 +72,16 @@ That's it. The pipeline runs automatically on every push and pull request.
 | Go | [`release-go.yml`](.github/workflows/release-go.yml) | Go module (tag) + GoReleaser binaries |
 | Semantic Version | [`release-semantic.yml`](.github/workflows/release-semantic.yml) | Auto-version + changelog from Conventional Commits; publishes to npm/PyPI/crates.io |
 | Docker Multi-Arch | [`release-docker-multiarch.yml`](.github/workflows/release-docker-multiarch.yml) | Multi-arch build (amd64 + arm64) → Trivy scan → Cosign sign → GHCR push |
+
+### Deploy Pipelines
+
+| Platform | File | Description |
+|----------|------|-------------|
+| GitHub Pages | [`deploy-github-pages.yml`](.github/workflows/deploy-github-pages.yml) | Build + deploy static sites (Hugo, Jekyll, Astro, 11ty) to Pages |
+| AWS ECS / Fargate | [`deploy-aws-ecs.yml`](.github/workflows/deploy-aws-ecs.yml) | Build Docker → push to ECR → deploy to ECS with zero downtime |
+| Cloudflare Pages | [`deploy-cloudflare-pages.yml`](.github/workflows/deploy-cloudflare-pages.yml) | Build + deploy static sites to Cloudflare Pages |
+| Firebase Hosting | [`deploy-firebase.yml`](.github/workflows/deploy-firebase.yml) | Build + deploy web apps with PR preview channels |
+| Google Cloud Run | [`deploy-google-cloud-run.yml`](.github/workflows/deploy-google-cloud-run.yml) | Build container → push to GCR → deploy to Cloud Run |
 
 ### Automation
 
@@ -68,6 +98,11 @@ That's it. The pipeline runs automatically on every push and pull request.
 | [`link-checker.yml`](.github/workflows/link-checker.yml) | Check for broken URLs in docs, runs weekly + on push |
 | [`deploy-preview.yml`](.github/workflows/deploy-preview.yml) | Per-PR preview deployments on Vercel/Netlify/Cloudflare with auto-cleanup |
 | [`security-compliance.yml`](.github/workflows/security-compliance.yml) | Weekly SBOM generation + OpenSSF Scorecard + CodeQL analysis |
+| [`welcome-contributor.yml`](.github/workflows/welcome-contributor.yml) | Welcome first-time contributors with automated greeting |
+| [`todo-to-issue.yml`](.github/workflows/todo-to-issue.yml) | Scan code for TODO/FIXME and create tracking issues |
+| [`lock-closed-issues.yml`](.github/workflows/lock-closed-issues.yml) | Auto-lock closed issues/PRs after 30 days to prevent necroposting |
+| [`pr-size-label.yml`](.github/workflows/pr-size-label.yml) | Auto-label PRs as XS/S/M/L/XL by lines changed |
+| [`changelog-enforcer.yml`](.github/workflows/changelog-enforcer.yml) | Require changelog entry for user-facing changes (supports `skip-changelog` label) |
 
 ### Configuration Templates
 

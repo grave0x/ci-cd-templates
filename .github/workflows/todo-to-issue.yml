@@ -1,0 +1,42 @@
+# =============================================================================
+# TODO-to-Issue — scan TODOs/FIXMEs and create tracking issues
+# =============================================================================
+#
+# Copy into your repo. Scans the codebase for TODO/FIXME/HACK comments
+# on a scheduled basis and creates GitHub issues for new ones.
+# =============================================================================
+
+name: TODO to Issue
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"  # Every Monday at 7am
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for TODOs
+        uses: alstr/todo-to-issue-action@v5
+        with:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LABEL: "todo"
+          COMMENT_HEADER: "Auto-generated from codebase scan"
+          CLOSE_ISSUES: true
+          ACTOR: ${{ github.actor }}
+          # Exclude patterns
+          IGNORE_PATHS: |
+            node_modules
+            .git
+            vendor
+            target
+            dist
+            build
+            __pycache__

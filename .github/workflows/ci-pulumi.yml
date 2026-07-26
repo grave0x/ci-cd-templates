@@ -1,0 +1,60 @@
+# =============================================================================
+# Pulumi CI — infrastructure as code validation
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/pulumi.yml
+# Requires: Pulumi.yaml at repo root
+#
+# What it does:
+#   - pulumi preview (on PRs)
+#   - pulumi up (on merge to main)
+#   - pulumi destroy (on branch delete, optional)
+# =============================================================================
+
+name: Pulumi CI
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["**/*.ts", "**/*.py", "**/*.go", "**/Pulumi*.yaml"]
+  pull_request:
+    branches: [main, master]
+    paths: ["**/*.ts", "**/*.py", "**/*.go", "**/Pulumi*.yaml"]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    name: Preview
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Pulumi
+        uses: pulumi/actions@v6
+        with:
+          command: preview
+          stack: ${{ vars.PULUMI_STACK || 'dev' }}
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          # Add cloud provider secrets:
+          # AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          # AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  up:
+    name: Deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy with Pulumi
+        uses: pulumi/actions@v6
+        with:
+          command: up
+          stack: ${{ vars.PULUMI_STACK || 'prod' }}
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

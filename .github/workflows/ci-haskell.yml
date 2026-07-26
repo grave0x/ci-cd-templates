@@ -1,0 +1,64 @@
+# =============================================================================
+# Haskell CI — quality gate for Haskell projects (Stack)
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: stack.yaml at repo root
+#
+# For Cabal-only projects, replace stack with cabal commands.
+#
+# What it does:
+#   - hlint (lint)
+#   - stack test
+#   - stack build
+# =============================================================================
+
+name: CI (Haskell)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ghc-version: ["9.6", "9.8"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ matrix.ghc-version }}
+          enable-stack: true
+          stack-version: latest
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.stack
+            .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock', '**/package.yaml') }}
+          restore-keys: ${{ runner.os }}-stack-
+
+      - name: Install dependencies
+        run: stack build --only-dependencies --test --no-run-tests
+
+      - name: Lint (hlint)
+        run: |
+          stack install hlint 2>/dev/null || cabal install hlint 2>/dev/null || true
+          hlint . 2>/dev/null || echo "hlint not available"
+        continue-on-error: true
+
+      - name: Test
+        run: stack test
+
+      - name: Build
+        run: stack build

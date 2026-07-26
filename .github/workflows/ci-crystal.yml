@@ -1,0 +1,48 @@
+# =============================================================================
+# Crystal CI — quality gate for Crystal projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: shard.yml at repo root
+#
+# What it does:
+#   - crystal tool format --check
+#   - crystal spec
+#   - crystal build --release
+# =============================================================================
+
+name: CI (Crystal)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        crystal-version: ["1.12", "1.13"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Crystal
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ matrix.crystal-version }}
+
+      - name: Format check
+        run: crystal tool format --check
+
+      - name: Install dependencies
+        run: shards install
+
+      - name: Test
+        run: crystal spec
+
+      - name: Build
+        run: crystal build --release src/*.cr 2>/dev/null || echo "No main source file found"

@@ -1,0 +1,75 @@
+# =============================================================================
+# Google Cloud Run Deploy — build and deploy container to Cloud Run
+# =============================================================================
+#
+# Copy into your repo. Builds a container with Cloud Build and deploys
+# to Cloud Run (fully managed). Supports both PR preview and production.
+#
+# Prerequisites:
+#   - Dockerfile at repo root
+#   - GCP project with Cloud Run + Cloud Build enabled
+#   - Workload Identity Federation configured or GCP_SA_KEY secret
+# =============================================================================
+
+name: Deploy Cloud Run
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  SERVICE_NAME: ${{ github.event.repository.name }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Option A: Workload Identity Federation (preferred)
+      - name: Authenticate to GCP (WIF)
+        if: secrets.GCP_WIF_PROVIDER
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      # Option B: Service account key (fallback)
+      - name: Authenticate to GCP (SA key)
+        if: secrets.GCP_SA_KEY && !secrets.GCP_WIF_PROVIDER
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push
+        run: |
+          gcloud builds submit \
+            --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:${{ github.sha }} \
+            --tag gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          image: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          region: ${{ env.REGION }}
+          flags: |
+            --allow-unauthenticated
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+
+      - name: Show deployed URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"

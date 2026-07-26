@@ -1,0 +1,82 @@
+# =============================================================================
+# AWS CDK CI — synthesize and deploy CDK apps
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/cdk.yml
+# Requires: cdk.json or app entry point
+#
+# What it does:
+#   - npm install / pip install / ... (language-dependent)
+#   - cdk synth (always)
+#   - cdk diff (on PRs)
+#   - cdk deploy (on push to main)
+# =============================================================================
+
+name: AWS CDK CI
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["**/*.ts", "**/*.py", "**/*.js", "**/cdk.json", "**/app.py"]
+  pull_request:
+    branches: [main, master]
+    paths: ["**/*.ts", "**/*.py", "**/*.js", "**/cdk.json", "**/app.py"]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  synth:
+    name: Synth
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          role-session-name: cdk-synth
+
+      # ── TypeScript ────────────────────────────────────────────────
+      - name: Synth (TypeScript)
+        if: hashFiles('package.json', 'cdk.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci 2>/dev/null || npm install
+      - run: npx cdk synth
+        if: hashFiles('package.json', 'cdk.json') != ''
+
+      # ── Python ────────────────────────────────────────────────────
+      - name: Synth (Python)
+        if: hashFiles('app.py', 'requirements.txt', 'pyproject.toml') != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt 2>/dev/null || pip install -e .
+        if: hashFiles('app.py', 'requirements.txt', 'pyproject.toml') != ''
+      - run: npx cdk synth
+        if: hashFiles('app.py', 'requirements.txt', 'pyproject.toml') != ''
+
+  deploy:
+    name: Deploy
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: synth
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          role-session-name: cdk-deploy
+
+      - name: Deploy
+        run: npx cdk deploy --require-approval never --all

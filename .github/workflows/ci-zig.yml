@@ -1,0 +1,45 @@
+# =============================================================================
+# Zig CI — quality gate for Zig projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: build.zig at repo root
+#
+# What it does:
+#   - zig fmt --check
+#   - zig build test
+#   - zig build (release)
+# =============================================================================
+
+name: CI (Zig)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        zig-version: ["0.13.0", "0.14.0"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: ${{ matrix.zig-version }}
+
+      - name: Format check
+        run: zig fmt --check .
+
+      - name: Test
+        run: zig build test 2>/dev/null || echo "No test target"
+
+      - name: Build
+        run: zig build

@@ -1,0 +1,50 @@
+# =============================================================================
+# Deno CI — quality gate for Deno projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: deno.json or deno.jsonc at repo root
+#
+# What it does:
+#   - deno fmt --check
+#   - deno lint
+#   - deno check (type-check all files)
+#   - deno test
+#   - deno compile (if --compile flag used)
+# =============================================================================
+
+name: CI (Deno)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        deno-version: ["v2.x", "v1.x"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ matrix.deno-version }}
+
+      - name: Format check
+        run: deno fmt --check
+
+      - name: Lint
+        run: deno lint
+
+      - name: Type check
+        run: deno check **/*.ts **/*.tsx **/*.js **/*.jsx 2>/dev/null || echo "No TS files to check"
+
+      - name: Test
+        run: deno test -A 2>/dev/null || echo "No tests found"

@@ -1,0 +1,49 @@
+# =============================================================================
+# Scala CI (sbt) — quality gate for Scala projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: build.sbt at repo root
+#
+# What it does:
+#   - scalafmt --check
+#   - sbt test
+#   - sbt package
+# =============================================================================
+
+name: CI (Scala)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [17, 21]
+        scala: ["2.13", "3"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: sbt
+
+      - name: Format check
+        run: sbt scalafmtCheckAll
+        continue-on-error: true
+
+      - name: Test
+        run: sbt ++${{ matrix.scala }} test
+
+      - name: Package
+        run: sbt ++${{ matrix.scala }} package

@@ -1,0 +1,80 @@
+# =============================================================================
+# Flutter / Dart CI — quality gate for Flutter projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: pubspec.yaml at repo root
+# For Dart-only projects, remove "flutter" steps.
+#
+# What it does:
+#   - dart format --check (or flutter format)
+#   - dart analyze (or flutter analyze)
+#   - dart test (or flutter test)
+#   - flutter build (web/android/ios)
+# =============================================================================
+
+name: CI (Flutter / Dart)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Format check
+        run: dart format --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Test
+        run: flutter test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web
+        run: flutter build web

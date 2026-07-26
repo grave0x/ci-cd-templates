@@ -1,0 +1,38 @@
+# =============================================================================
+# Lock Closed Issues — auto-lock resolved conversations
+# =============================================================================
+#
+# Copy into your repo. Locks closed issues and PRs after a quiet period
+# to prevent necroposting on resolved discussions.
+# =============================================================================
+
+name: Lock Closed Issues
+
+on:
+  schedule:
+    - cron: "0 6 * * *"  # Daily at 6am
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/lock-threads@v5
+        with:
+          process-only: issues
+          issue-inactive-days: 30
+          issue-lock-reason: resolved
+          issue-comment: >
+            This issue has been automatically locked since it has not had
+            recent activity after it was closed. If the problem persists,
+            please open a new issue with a fresh description.
+          pr-inactive-days: 30
+          pr-lock-reason: resolved
+          pr-comment: >
+            This PR has been automatically locked since it has not had
+            recent activity after it was closed. Please open a new PR
+            for any further changes.

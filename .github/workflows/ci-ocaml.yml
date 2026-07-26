@@ -1,0 +1,50 @@
+# =============================================================================
+# OCaml CI (dune) — quality gate for OCaml projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: dune-project at repo root
+#
+# What it does:
+#   - ocamlformat --check
+#   - dune build
+#   - dune runtest
+# =============================================================================
+
+name: CI (OCaml)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ocaml-version: ["5.1", "5.2"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-version }}
+          dune-cache: true
+
+      - name: Format check
+        run: |
+          opam install ocamlformat 2>/dev/null || true
+          eval $(opam env)
+          ocamlformat --check src/**/*.ml 2>/dev/null || echo "ocamlformat not configured"
+        continue-on-error: true
+
+      - name: Build
+        run: dune build
+
+      - name: Test
+        run: dune runtest
