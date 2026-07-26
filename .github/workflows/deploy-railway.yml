@@ -1,0 +1,33 @@
+# =============================================================================
+# Railway Deploy — deploy to Railway
+# =============================================================================
+#
+# Copy into your repo. Deploys to Railway on push to main.
+# Uses a Railway service linked to this GitHub repo.
+#
+# Prerequisites:
+#   - RAILWAY_TOKEN secret
+# =============================================================================
+
+name: Deploy Railway
+
+on:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.app/install.sh | sh
+
+      - name: Deploy
+        run: railway up --detach --service ${{ vars.RAILWAY_SERVICE_NAME || '' }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

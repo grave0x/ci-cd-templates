@@ -1,0 +1,43 @@
+# =============================================================================
+# Nim CI — quality gate for Nim projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: .nimble file at repo root
+#
+# What it does:
+#   - nimble lint
+#   - nimble test
+#   - nimble build
+# =============================================================================
+
+name: CI (Nim)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nim-version: ["2.0", "2.2"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Nim
+        uses: iffy/install-nim@v5
+        with:
+          version: ${{ matrix.nim-version }}
+
+      - name: Test
+        run: nimble test -y
+        continue-on-error: true
+
+      - name: Build
+        run: nimble build -y

@@ -1,0 +1,48 @@
+# =============================================================================
+# Swift CI — quality gate for Swift / iOS / macOS projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: Package.swift at repo root
+#
+# What it does:
+#   - swiftlint lint
+#   - swift test
+#   - swift build
+# =============================================================================
+
+name: CI (Swift)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        swift-version: ["5.10", "6.0"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Swift ${{ matrix.swift-version }}
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ matrix.swift-version }}
+
+      - name: Lint (SwiftLint)
+        run: |
+          brew install swiftlint 2>/dev/null || true
+          swiftlint lint --strict 2>/dev/null || echo "SwiftLint not configured"
+        continue-on-error: true
+
+      - name: Test
+        run: swift test
+
+      - name: Build
+        run: swift build

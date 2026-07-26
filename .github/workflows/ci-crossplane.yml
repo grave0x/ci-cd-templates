@@ -1,0 +1,37 @@
+# =============================================================================
+# Crossplane CI — validate Crossplane compositions and claims
+# =============================================================================
+#
+# Copy into your repo. Validates Crossplane Composition, Claim,
+# and XRDs using crossplane beta validate.
+#
+# Requires: crossplane.yaml or Composition YAML files
+# =============================================================================
+
+name: Crossplane CI
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["**/crossplane*.yaml", "**/composition*.yaml", "**/*.xrd.yaml"]
+  pull_request:
+    branches: [main, master]
+    paths: ["**/crossplane*.yaml", "**/composition*.yaml", "**/*.xrd.yaml"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Crossplane CLI
+        uses: crossplane/action-install-crossplane@v0
+        with:
+          version: latest
+
+      - name: Validate resources
+        run: |
+          crossplane beta validate \
+            --schemas-dir /tmp/crossplane-schemas \
+            $(find . -name '*.yaml' -not -path '*/node_modules/*' -not -path '*/.git/*' | tr '\n' ' ')
+        continue-on-error: true

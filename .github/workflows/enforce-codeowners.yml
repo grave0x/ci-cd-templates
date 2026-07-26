@@ -1,0 +1,43 @@
+# =============================================================================
+# Enforce CODEOWNERS — require approval from code owners
+# =============================================================================
+#
+# Copy into your repo. Ensures all files changed in a PR have at least
+# one approval from an owner listed in .github/CODEOWNERS.
+# =============================================================================
+
+name: Enforce CODEOWNERS
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reviewed]
+
+permissions:
+  pull-requests: read
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Check CODEOWNERS exists
+        id: check
+        run: |
+          if [ -f .github/CODEOWNERS ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "No .github/CODEOWNERS found — skipping"
+          fi
+
+      - name: Verify owners approved
+        if: steps.check.outputs.exists == 'true'
+        uses: MSS023/CODEOWNERS-validator@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pull_request_number: ${{ github.event.pull_request.number }}
+          check_approval_count: true

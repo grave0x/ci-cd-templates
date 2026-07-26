@@ -1,0 +1,60 @@
+# =============================================================================
+# Netlify Deploy — deploy to Netlify (standalone, not preview)
+# =============================================================================
+#
+# Copy into your repo. Deploys to Netlify production on push to main,
+# or preview on PRs.
+#
+# Prerequisites:
+#   - NETLIFY_AUTH_TOKEN and NETLIFY_SITE_ID secrets
+# =============================================================================
+
+name: Deploy Netlify
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        if: hashFiles('package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install and build
+        if: hashFiles('package.json') != ''
+        run: |
+          npm ci
+          npm run build 2>/dev/null || echo "No build script"
+
+      - name: Deploy to Netlify
+        id: netlify
+        uses: nwtgck/actions-netlify@v3
+        with:
+          publish-dir: |
+            ./build
+            ./dist
+            ./public
+            .
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy ${{ github.sha }}"
+          enable-commit-comment: true
+          alias: pr-${{ github.event.number }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

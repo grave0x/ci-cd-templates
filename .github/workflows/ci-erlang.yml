@@ -1,0 +1,66 @@
+# =============================================================================
+# Erlang / OTP CI (rebar3) — quality gate for Erlang projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: rebar.config at repo root
+#
+# What it does:
+#   - rebar3 lint
+#   - rebar3 ct (Common Test)
+#   - rebar3 dialyzer
+#   - rebar3 escriptize (build)
+# =============================================================================
+
+name: CI (Erlang)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        otp-version: ["26", "27"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Erlang/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp-version }}
+
+      - name: Cache deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            _build
+            ~/.cache/rebar3
+          key: ${{ runner.os }}-rebar3-${{ hashFiles('**/rebar.lock') }}
+          restore-keys: ${{ runner.os }}-rebar3-
+
+      - name: Get dependencies
+        run: rebar3 get-deps
+
+      - name: Lint
+        run: rebar3 lint 2>/dev/null || echo "rebar3_lint not configured"
+        continue-on-error: true
+
+      - name: Compile
+        run: rebar3 compile
+
+      - name: Test (Common Test)
+        run: rebar3 ct
+
+      - name: Dialyzer
+        run: rebar3 dialyzer
+        continue-on-error: true
+
+      - name: Build release
+        run: rebar3 release 2>/dev/null || rebar3 escriptize 2>/dev/null || echo "No release target"

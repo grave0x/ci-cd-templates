@@ -1,0 +1,37 @@
+# =============================================================================
+# SQLFluff Lint — lint and fix SQL files
+# =============================================================================
+#
+# Copy into your repo. Lints SQL files for style and correctness.
+# Supports dialect configuration (postgres, mysql, bigquery, etc.).
+# =============================================================================
+
+name: SQL Lint
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["**/*.sql"]
+  pull_request:
+    branches: [main, master]
+    paths: ["**/*.sql"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install SQLFluff
+        run: pip install sqlfluff
+
+      - name: Lint SQL files
+        run: |
+          sqlfluff lint . \
+            --dialect ${{ vars.SQLFLUFF_DIALECT || 'postgres' }} \
+            --nocolor

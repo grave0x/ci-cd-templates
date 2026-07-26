@@ -1,0 +1,40 @@
+# =============================================================================
+# Issue Label Validation — require at least one label on issues
+# =============================================================================
+#
+# Copy into your repo. Ensures every new issue has at least one label.
+# If unlabeled, applies 'needs-triage' and leaves a reminder comment.
+# =============================================================================
+
+name: Issue Label Validation
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  issues: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            if (issue.labels.length === 0) {
+              await github.rest.issues.addLabels({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: ['needs-triage']
+              });
+
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `👋 Thanks for opening this issue!\n\nA label hasn't been assigned yet. A maintainer will triage this shortly.\n\nIf you know what category this falls under, feel free to add a label yourself.`
+              });
+            }

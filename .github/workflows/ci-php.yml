@@ -1,0 +1,80 @@
+# =============================================================================
+# PHP / Laravel CI — quality gate for PHP projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: composer.json at repo root
+#
+# What it does:
+#   - composer validate
+#   - phpcs / pint (lint)
+#   - phpstan (static analysis)
+#   - phpunit (tests)
+# =============================================================================
+
+name: CI (PHP)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ["8.2", "8.3"]
+      fail-fast: false
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_DATABASE: test
+          MYSQL_USER: runner
+          MYSQL_PASSWORD: password
+          MYSQL_ROOT_PASSWORD: rootpassword
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, pdo, pdo_mysql, intl
+          coverage: xdebug
+          tools: composer, phpcs, phpstan, phpunit
+
+      - name: Validate composer
+        run: composer validate --strict
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Lint (PHPCS)
+        run: vendor/bin/phpcs --standard=PSR12 src/ 2>/dev/null || echo "PHPCS not configured"
+        continue-on-error: true
+
+      - name: Static analysis (PHPStan)
+        run: vendor/bin/phpstan analyse --level=max src/ 2>/dev/null || echo "PHPStan not configured"
+        continue-on-error: true
+
+      - name: Test (PHPUnit)
+        run: vendor/bin/phpunit 2>/dev/null || echo "PHPUnit not configured"

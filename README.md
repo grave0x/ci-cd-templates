@@ -51,6 +51,11 @@ That's it. The pipeline runs automatically on every push and pull request.
 | OCaml (dune) | [`ci-ocaml.yml`](.github/workflows/ci-ocaml.yml) | `ocamlformat` → `dune build` → `dune runtest` |
 | Kotlin | [`ci-kotlin.yml`](.github/workflows/ci-kotlin.yml) | `ktlint` → `detekt` → `gradle test` → `gradle jar` |
 | Crystal | [`ci-crystal.yml`](.github/workflows/ci-crystal.yml) | `crystal tool format` → `crystal spec` → `crystal build --release` |
+| PHP / Laravel | [`ci-php.yml`](.github/workflows/ci-php.yml) | `composer validate` → `PHPCS` → `PHPStan` → `PHPUnit` + MySQL service |
+| Swift | [`ci-swift.yml`](.github/workflows/ci-swift.yml) | `swiftlint` → `swift test` → `swift build` |
+| R | [`ci-r.yml`](.github/workflows/ci-r.yml) | `lintr` → `R CMD check` |
+| Nim | [`ci-nim.yml`](.github/workflows/ci-nim.yml) | `nimble test` → `nimble build` |
+| Erlang / OTP | [`ci-erlang.yml`](.github/workflows/ci-erlang.yml) | `rebar3 lint` → `rebar3 ct` → `dialyzer` → `release` |
 
 ### Infrastructure CI
 
@@ -61,17 +66,20 @@ That's it. The pipeline runs automatically on every push and pull request.
 | AWS CDK | [`ci-cdk.yml`](.github/workflows/ci-cdk.yml) | `cdk synth` → `cdk diff` → `cdk deploy` |
 | Helm | [`ci-helm.yml`](.github/workflows/ci-helm.yml) | `helm lint` → `helm template` → `helm push` (tag) |
 | Packer | [`ci-packer.yml`](.github/workflows/ci-packer.yml) | `packer fmt --check` → `packer validate` → `packer build` |
+| Crossplane | [`ci-crossplane.yml`](.github/workflows/ci-crossplane.yml) | `crossplane beta validate` compositions and claims |
+| Serverless Framework | [`ci-serverless.yml`](.github/workflows/ci-serverless.yml) | `sls package` → `sls deploy` (AWS Lambda, Azure Functions, GCP) |
+
+### Lint & Validation
+
+| Tool | File | Checks |
+|------|------|--------|
+| OpenAPI / Swagger | [`lint-openapi.yml`](.github/workflows/lint-openapi.yml) | `spectral lint` → `swagger-cli validate` on all OpenAPI/Swagger specs |
+| GraphQL Schema | [`lint-graphql.yml`](.github/workflows/lint-graphql.yml) | `graphql-inspector validate` + breaking change diff against base branch |
+| Protobuf (Buf) | [`lint-buf-proto.yml`](.github/workflows/lint-buf-proto.yml) | `buf lint` → `buf breaking` against base branch |
+| SQL (SQLFluff) | [`lint-sqlfluff.yml`](.github/workflows/lint-sqlfluff.yml) | `sqlfluff lint` with configurable dialect (postgres, mysql, bigquery) |
+| Spellcheck | [`lint-spellcheck.yml`](.github/workflows/lint-spellcheck.yml) | `codespell` on docs + source files, ignores generated dirs |
 
 ### Release Pipelines
-
-| Language | File | Publishes To |
-|----------|------|-------------|
-| Rust | [`release-rust.yml`](.github/workflows/release-rust.yml) | crates.io + GitHub Release (binary) |
-| Python | [`release-python.yml`](.github/workflows/release-python.yml) | PyPI via trusted publishing |
-| Node.js | [`release-node.yml`](.github/workflows/release-node.yml) | npm with provenance |
-| Go | [`release-go.yml`](.github/workflows/release-go.yml) | Go module (tag) + GoReleaser binaries |
-| Semantic Version | [`release-semantic.yml`](.github/workflows/release-semantic.yml) | Auto-version + changelog from Conventional Commits; publishes to npm/PyPI/crates.io |
-| Docker Multi-Arch | [`release-docker-multiarch.yml`](.github/workflows/release-docker-multiarch.yml) | Multi-arch build (amd64 + arm64) → Trivy scan → Cosign sign → GHCR push |
 
 ### Deploy Pipelines
 
@@ -82,6 +90,9 @@ That's it. The pipeline runs automatically on every push and pull request.
 | Cloudflare Pages | [`deploy-cloudflare-pages.yml`](.github/workflows/deploy-cloudflare-pages.yml) | Build + deploy static sites to Cloudflare Pages |
 | Firebase Hosting | [`deploy-firebase.yml`](.github/workflows/deploy-firebase.yml) | Build + deploy web apps with PR preview channels |
 | Google Cloud Run | [`deploy-google-cloud-run.yml`](.github/workflows/deploy-google-cloud-run.yml) | Build container → push to GCR → deploy to Cloud Run |
+| Vercel | [`deploy-vercel.yml`](.github/workflows/deploy-vercel.yml) | Deploy production + PR preview builds to Vercel |
+| Netlify | [`deploy-netlify.yml`](.github/workflows/deploy-netlify.yml) | Deploy production + PR preview builds to Netlify |
+| Railway | [`deploy-railway.yml`](.github/workflows/deploy-railway.yml) | Deploy to Railway on push to main |
 
 ### Automation
 
@@ -103,6 +114,11 @@ That's it. The pipeline runs automatically on every push and pull request.
 | [`lock-closed-issues.yml`](.github/workflows/lock-closed-issues.yml) | Auto-lock closed issues/PRs after 30 days to prevent necroposting |
 | [`pr-size-label.yml`](.github/workflows/pr-size-label.yml) | Auto-label PRs as XS/S/M/L/XL by lines changed |
 | [`changelog-enforcer.yml`](.github/workflows/changelog-enforcer.yml) | Require changelog entry for user-facing changes (supports `skip-changelog` label) |
+| [`enforce-codeowners.yml`](.github/workflows/enforce-codeowners.yml) | Require approval from CODEOWNERS on all changed files |
+| [`auto-assign-issue.yml`](.github/workflows/auto-assign-issue.yml) | Auto-assign issues when someone comments "take" or "assign me" |
+| [`issue-label-validation.yml`](.github/workflows/issue-label-validation.yml) | Require at least one label on new issues, auto-tag unlabeled as `needs-triage` |
+| [`dependency-report.yml`](.github/workflows/dependency-report.yml) | Weekly issue with outdated dependency summary for npm/Cargo/pip |
+| [`renovate-auto-merge.yml`](.github/workflows/renovate-auto-merge.yml) | Auto-approve + merge Renovate minor/patch PRs that pass CI |
 
 ### Configuration Templates
 

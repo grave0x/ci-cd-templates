@@ -1,0 +1,47 @@
+# =============================================================================
+# Renovate Auto-Merge — auto-merge Renovate PRs that pass CI
+# =============================================================================
+#
+# Copy into your repo. Automatically approves and merges Renovate's
+# dependency update PRs when they pass all CI checks.
+#
+# Requires: Renovate configured (templates/renovate/default.json)
+# =============================================================================
+
+name: Renovate Auto-Merge
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  auto-merge:
+    if: github.actor == 'renovate[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Renovate metadata
+        id: metadata
+        uses: renovatebot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Auto-approve
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
+        run: >
+          gh pr merge --auto --squash
+          --subject "chore(deps): ${{ github.event.pull_request.title }}"
+          "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

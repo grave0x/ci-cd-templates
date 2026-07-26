@@ -1,0 +1,52 @@
+# =============================================================================
+# GraphQL Schema Lint — detect breaking schema changes
+# =============================================================================
+#
+# Copy into your repo. Lints GraphQL schemas and detects breaking changes
+# between the base branch and the current branch.
+#
+# Requires: schema.graphql or *.graphql files
+# =============================================================================
+
+name: GraphQL Lint
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths: ["**/*.graphql", "**/*.gql"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install tools
+        run: npm install -g graphql @graphql-inspector/cli
+
+      - name: Find schema
+        id: schema
+        run: |
+          SCHEMA=$(find . -name 'schema.graphql' -o -name 'schema.gql' | grep -v node_modules | head -1)
+          echo "schema=$SCHEMA" >> "$GITHUB_OUTPUT"
+          echo "Found schema: $SCHEMA"
+
+      - name: Validate schema
+        if: steps.schema.outputs.schema
+        run: |
+          npx graphql-inspector validate "${{ steps.schema.outputs.schema }}"
+
+      - name: Check breaking changes (vs base)
+        if: steps.schema.outputs.schema && github.event_name == 'pull_request'
+        run: |
+          git show origin/${{ github.event.pull_request.base.ref }}:${{ steps.schema.outputs.schema }} > /tmp/schema-base.graphql 2>/dev/null || true
+          if [ -f /tmp/schema-base.graphql ]; then
+            npx graphql-inspector diff /tmp/schema-base.graphql "${{ steps.schema.outputs.schema }}"
+          fi

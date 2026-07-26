@@ -1,0 +1,33 @@
+# =============================================================================
+# Buf Proto Lint — lint and check breaking changes in protobuf schemas
+# =============================================================================
+#
+# Copy into your repo. Uses Buf to lint your protobuf definitions and
+# check for breaking changes against the main branch.
+#
+# Requires: buf.yaml or proto/ directory with .proto files
+# =============================================================================
+
+name: Buf Proto Lint
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths: ["**/*.proto", "**/buf.yaml", "**/buf.gen.yaml"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buf
+        uses: bufbuild/buf-setup-action@v1
+
+      - name: Lint
+        run: buf lint
+
+      - name: Check breaking changes
+        run: buf breaking --against "../../.git#ref=origin/${{ github.event.pull_request.base.ref }},subdir=."

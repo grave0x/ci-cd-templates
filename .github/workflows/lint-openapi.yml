@@ -1,0 +1,47 @@
+# =============================================================================
+# OpenAPI / Swagger Lint — validate OpenAPI specs
+# =============================================================================
+#
+# Copy into your repo. Lints OpenAPI/Swagger specifications using
+# spectral to enforce API design rules and catch breaking changes.
+#
+# Requires: openapi.yml, openapi.json, or swagger.yml at repo root
+# =============================================================================
+
+name: OpenAPI Lint
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["**/openapi*.yml", "**/openapi*.json", "**/swagger*.yml", "**/swagger*.json"]
+  pull_request:
+    branches: [main, master]
+    paths: ["**/openapi*.yml", "**/openapi*.json", "**/swagger*.yml", "**/swagger*.json"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Spectral
+        run: npm install -g @stoplight/spectral-cli
+
+      - name: Lint OpenAPI specs
+        run: |
+          for spec in $(find . -name 'openapi*.yml' -o -name 'openapi*.json' -o -name 'swagger*.yml' -o -name 'swagger*.json' 2>/dev/null | grep -v node_modules); do
+            echo "=== Linting: $spec ==="
+            spectral lint "$spec" --fail-severity=warn
+          done
+
+      - name: Validate bundle
+        run: |
+          for spec in $(find . -name 'openapi*.yml' -o -name 'openapi*.json' -o -name 'swagger*.yml' -o -name 'swagger*.json' 2>/dev/null | grep -v node_modules); do
+            echo "=== Validating: $spec ==="
+            npx swagger-cli validate "$spec" 2>/dev/null || true
+          done
