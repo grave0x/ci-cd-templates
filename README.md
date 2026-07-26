@@ -40,6 +40,7 @@ That's it. The pipeline runs automatically on every push and pull request.
 | Docker | [`ci-docker.yml`](.github/workflows/ci-docker.yml) | Build → `Trivy scan` (fail on CRITICAL/HIGH) → Push |
 | Terraform / OpenTofu | [`ci-terraform.yml`](.github/workflows/ci-terraform.yml) | `fmt -check` → `validate` → `Checkov scan` → `plan` |
 | Kubernetes | [`ci-kubernetes.yml`](.github/workflows/ci-kubernetes.yml) | `kubeconform` schema validation → `kubesec` scan → `pluto` deprecation check |
+| Ruby / Rails | [`ci-ruby.yml`](.github/workflows/ci-ruby.yml) | `rubocop` → `brakeman` → `rspec` → DB migration → assets precompile |
 
 ### Release Pipelines
 
@@ -49,6 +50,8 @@ That's it. The pipeline runs automatically on every push and pull request.
 | Python | [`release-python.yml`](.github/workflows/release-python.yml) | PyPI via trusted publishing |
 | Node.js | [`release-node.yml`](.github/workflows/release-node.yml) | npm with provenance |
 | Go | [`release-go.yml`](.github/workflows/release-go.yml) | Go module (tag) + GoReleaser binaries |
+| Semantic Version | [`release-semantic.yml`](.github/workflows/release-semantic.yml) | Auto-version + changelog from Conventional Commits; publishes to npm/PyPI/crates.io |
+| Docker Multi-Arch | [`release-docker-multiarch.yml`](.github/workflows/release-docker-multiarch.yml) | Multi-arch build (amd64 + arm64) → Trivy scan → Cosign sign → GHCR push |
 
 ### Automation
 
@@ -63,6 +66,8 @@ That's it. The pipeline runs automatically on every push and pull request.
 | [`security-audit.yml`](.github/workflows/security-audit.yml) | Weekly scheduled vulnerability scanning (cargo-audit, npm audit, pip-audit, govulncheck) |
 | [`markdown-lint.yml`](.github/workflows/markdown-lint.yml) | Lint Markdown documentation files |
 | [`link-checker.yml`](.github/workflows/link-checker.yml) | Check for broken URLs in docs, runs weekly + on push |
+| [`deploy-preview.yml`](.github/workflows/deploy-preview.yml) | Per-PR preview deployments on Vercel/Netlify/Cloudflare with auto-cleanup |
+| [`security-compliance.yml`](.github/workflows/security-compliance.yml) | Weekly SBOM generation + OpenSSF Scorecard + CodeQL analysis |
 
 ### Configuration Templates
 

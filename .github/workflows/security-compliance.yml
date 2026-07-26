@@ -1,0 +1,132 @@
+# =============================================================================
+# Security Compliance — SBOM + Scorecard + CodeQL
+# =============================================================================
+#
+# Copy into your repo. Runs a scheduled (weekly) compliance scan that:
+#   - Generates a Software Bill of Materials (CycloneDX)
+#   - Runs OpenSSF Scorecard (security posture)
+#   - Runs CodeQL semantic code analysis
+#
+# All three run in parallel and upload results as SARIF + artifacts.
+#
+# Scans: https://openssf.org/scorecard/
+# SBOM:  https://cyclonedx.org/
+# CodeQL: https://codeql.github.com/
+# =============================================================================
+
+name: Security Compliance
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"  # Every Monday at 5am
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+  security-events: write
+  id-token: write
+  attestations: write
+
+jobs:
+  # ── SBOM Generation ──────────────────────────────────────────────
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate SBOM (CycloneDX)
+        uses: CycloneDX/gh-docker-generate-sbom@v2
+        with:
+          path: .
+          format: json
+          output: ./sbom.cdx.json
+
+      - name: Generate SBOM (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: ./sbom.spdx.json
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            sbom.cdx.json
+            sbom.spdx.json
+
+      - name: Attest SBOM
+        if: github.event_name != 'pull_request'
+        uses: actions/attest-sbom@v1
+        with:
+          subject-path: ${{ github.workspace }}
+          sbom-path: ./sbom.cdx.json
+
+  # ── OpenSSF Scorecard ────────────────────────────────────────────
+  scorecard:
+    name: OpenSSF Scorecard
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@v2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload Scorecard SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+  # ── CodeQL Analysis ──────────────────────────────────────────────
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+
+    strategy:
+      matrix:
+        language:
+          - javascript-typescript
+          - python
+          - go
+          - rust
+          - java-kotlin
+          - ruby
+          - c-cpp
+          - swift
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Auto-build
+        uses: github/codeql-action/autobuild@v3
+        continue-on-error: true
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"

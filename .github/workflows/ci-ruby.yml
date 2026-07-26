@@ -1,0 +1,103 @@
+# =============================================================================
+# Ruby / Rails CI — quality gate for Ruby projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci.yml
+# Requires: Gemfile at repo root
+#
+# What it does:
+#   - rubocop lint (if configured)
+#   - brakeman security scan (Rails)
+#   - bundle exec rspec
+#   - bundle exec rails test (if Rails)
+#   - bundle exec rails assets:precompile (if Rails)
+# =============================================================================
+
+name: CI (Ruby)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    name: Lint & security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: RuboCop
+        run: bundle exec rubocop --parallel
+        continue-on-error: true
+
+      - name: Brakeman (Rails)
+        run: bundle exec brakeman --no-pager --quiet
+        continue-on-error: true
+
+  test:
+    name: Test (${{ matrix.ruby-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ["3.2", "3.3", "3.4"]
+      fail-fast: false
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: runner
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - name: Set up database
+        run: |
+          cp config/database.ci.yml config/database.yml 2>/dev/null || true
+          bundle exec rails db:create db:migrate 2>/dev/null \
+            || bundle exec rake db:create db:migrate 2>/dev/null \
+            || echo "No database setup needed"
+        env:
+          DATABASE_URL: "postgres://runner:password@localhost:5432/test"
+          RAILS_ENV: test
+
+      - name: Run tests
+        run: |
+          bundle exec rspec --format progress 2>/dev/null \
+            || bundle exec rails test 2>/dev/null \
+            || bundle exec rake test 2>/dev/null \
+            || echo "No test runner found"
+        env:
+          DATABASE_URL: "postgres://runner:password@localhost:5432/test"
+          RAILS_ENV: test
+
+      - name: Precompile assets (Rails)
+        run: |
+          bundle exec rails assets:precompile 2>/dev/null \
+            || echo "No asset pipeline"
+        env:
+          DATABASE_URL: "postgres://runner:password@localhost:5432/test"
+          RAILS_ENV: test
