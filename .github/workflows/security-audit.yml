@@ -1,0 +1,79 @@
+# =============================================================================
+# Security Audit — scheduled vulnerability scanning
+# =============================================================================
+#
+# Copy into your repo. Runs on a weekly schedule and on push to main/master.
+# Scans dependencies for known vulnerabilities across ecosystems.
+# =============================================================================
+
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"  # Every Monday at 6am
+  push:
+    branches: [main, master]
+    paths:
+      - "**/Cargo.lock"
+      - "**/package-lock.json"
+      - "**/yarn.lock"
+      - "**/pnpm-lock.yaml"
+      - "**/uv.lock"
+      - "**/requirements*.txt"
+      - "**/go.sum"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  rust:
+    name: Rust audit
+    if: hashFiles('Cargo.lock') != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-audit 2>/dev/null || true
+      - run: cargo audit
+        continue-on-error: true
+
+  npm:
+    name: npm audit
+    if: hashFiles('package-lock.json') != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+        continue-on-error: true
+
+  python:
+    name: Python audit
+    if: hashFiles('requirements.txt', 'pyproject.toml', 'uv.lock') != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pip-audit
+      - run: pip-audit
+        continue-on-error: true
+
+  go:
+    name: Go audit
+    if: hashFiles('go.sum') != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - run: govulncheck ./...
+        continue-on-error: true

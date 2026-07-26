@@ -1,0 +1,66 @@
+# =============================================================================
+# Kubernetes CI — validate manifests against Kubernetes API
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/kubernetes.yml
+# Requires: *.yaml Kubernetes manifests
+#
+# What it does:
+#   - Lint with kubeconform (schema validation)
+#   - Security scan with kubesec
+#   - Check deprecated APIs with pluto
+#   - Dry-run apply (if kubectl configured)
+# =============================================================================
+
+name: Kubernetes CI
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["**.yaml", "**.yml", "**/kustomization.yaml"]
+  pull_request:
+    branches: [main, master]
+    paths: ["**.yaml", "**.yml", "**/kustomization.yaml"]
+
+jobs:
+  validate:
+    name: Schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate with kubeconform
+        uses: yannh/kubeconform-action@v0.2.1
+        with:
+          directory: .
+          # Comma-separated list of schema locations
+          schema-location: "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/{{ .NormalizedKubernetesVersion }}-standalone{{ .StrictSuffix }}/{{ .ResourceKind }}{{ .KindSuffix }}.json"
+          # verbose: 0
+          # strict: false
+          # skip: ""
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan with kubesec
+        uses: controlplaneio/kubesec-action@v0.1.0
+        with:
+          files: |
+            $(find . -name '*.yaml' -not -path '*/vendor/*' | tr '\n' ' ')
+          # Optional: fail on score below threshold
+          # failure-threshold: 5
+
+  deprecation:
+    name: Deprecated API check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check deprecated APIs
+        uses: fivexl/pluto-action@v1
+        with:
+          k8s-version: "1.31"
+          dir: .

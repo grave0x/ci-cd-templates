@@ -1,0 +1,52 @@
+# =============================================================================
+# Java / Kotlin CI (Gradle) — quality gate for JVM projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci-java.yml
+# Requires: build.gradle or build.gradle.kts at repo root
+#
+# For Maven, see ci-java-maven.yml instead.
+#
+# What it does:
+#   - gradle compileJava
+#   - gradle test
+#   - gradle jar
+# =============================================================================
+
+name: CI (Java / Gradle)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [17, 21]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: gradle
+
+      - name: Grant Gradle wrapper permission
+        run: chmod +x gradlew
+
+      - name: Compile
+        run: ./gradlew compileJava
+
+      - name: Test
+        run: ./gradlew test
+
+      - name: Package
+        run: ./gradlew jar

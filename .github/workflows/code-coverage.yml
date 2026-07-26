@@ -1,0 +1,54 @@
+# =============================================================================
+# Code Coverage — upload coverage reports to Codecov / Coveralls
+# =============================================================================
+#
+# Copy into your repo. Requires your CI to generate a coverage report.
+# Adjust the coverage file path for your language/tool.
+# =============================================================================
+
+name: Coverage
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Rust (tarpaulin / llvm-cov) ──────────────────────────────
+      - name: Generate coverage (Rust)
+        if: hashFiles('Cargo.toml') != ''
+        run: |
+          cargo install cargo-tarpaulin
+          cargo tarpaulin --out xml --output-dir coverage
+        continue-on-error: true
+
+      # ── Python (pytest-cov) ──────────────────────────────────────
+      - name: Generate coverage (Python)
+        if: hashFiles('pyproject.toml', 'setup.py', 'setup.cfg') != ''
+        run: |
+          pip install pytest-cov
+          python -m pytest --cov=. --cov-report=xml:coverage.xml
+        continue-on-error: true
+
+      # ── Node (c8 / istanbul) ─────────────────────────────────────
+      - name: Generate coverage (Node)
+        if: hashFiles('package.json') != ''
+        run: |
+          npm test -- --coverage 2>/dev/null \
+            || npx c8 npm test 2>/dev/null \
+            || echo "No coverage tool configured"
+        continue-on-error: true
+
+      # ── Upload to Codecov ────────────────────────────────────────
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml,./coverage/cobertura.xml,./coverage/lcov.info,./lcov.info
+          fail_ci_if_error: false

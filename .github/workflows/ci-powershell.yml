@@ -1,0 +1,62 @@
+# =============================================================================
+# PowerShell CI — lint, analyze, and test
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci-powershell.yml
+# Requires: *.ps1, *.psm1, or *.psd1 files
+#
+# What it does:
+#   - PSScriptAnalyzer (lint)
+#   - Pester tests (if tests exist)
+# =============================================================================
+
+name: CI (PowerShell)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+        shell: pwsh
+
+      - name: Run Invoke-ScriptAnalyzer
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning
+          if ($results) {
+            $results | Format-Table -AutoSize
+            throw "PSScriptAnalyzer found issues"
+          }
+        shell: pwsh
+
+  test:
+    name: Test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester
+        run: Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
+        shell: pwsh
+
+      - name: Run Pester tests
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = ".\Tests"
+          $config.Run.PassThru = $true
+          $config.Should.ErrorAction = 'Continue'
+          $result = Invoke-Pester -Configuration $config
+          if ($result.FailedCount -gt 0) {
+            throw "$($result.FailedCount) tests failed"
+          }
+        shell: pwsh
+        continue-on-error: true

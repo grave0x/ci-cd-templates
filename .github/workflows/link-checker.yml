@@ -1,0 +1,57 @@
+# =============================================================================
+# Link Checker — check for broken URLs in documentation
+# =============================================================================
+#
+# Copy into your repo. Uses lychee, a fast Rust-based link checker.
+# Runs on schedule and on push to main/master.
+# =============================================================================
+
+name: Link Checker
+
+on:
+  push:
+    branches: [main, master]
+    paths: ["**/*.md", "**/*.rst", "**/*.html"]
+  pull_request:
+    branches: [main, master]
+    paths: ["**/*.md", "**/*.rst", "**/*.html"]
+  schedule:
+    - cron: "0 8 * * 1"  # Every Monday at 8am
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Check all markdown, HTML, and reStructuredText files
+          args: >-
+            --accept 200,201,202,203,204,206,301,302,303,307,308
+            --exclude-loopback
+            --exclude-mail
+            --verbose
+            --no-progress
+            .
+          # Fail the job if broken links are found
+          fail: true
+          # Output format
+          format: markdown
+          output: lychee-report.md
+
+      - name: Post report
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('lychee-report.md', 'utf8');
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Broken links found',
+              body: report,
+              labels: ['documentation']
+            });

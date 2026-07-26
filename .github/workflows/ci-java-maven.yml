@@ -1,0 +1,54 @@
+# =============================================================================
+# Java / Kotlin CI (Maven) — quality gate for JVM projects
+# =============================================================================
+#
+# Copy into your repo as .github/workflows/ci-java.yml
+# Requires: pom.xml at repo root
+#
+# For Gradle, see ci-gradle.yml instead.
+#
+# What it does:
+#   - mvn compile
+#   - mvn test
+#   - mvn package
+#   - (optional) mvn spotless:check for formatting
+# =============================================================================
+
+name: CI (Java / Maven)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [17, 21]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: maven
+
+      - name: Compile
+        run: mvn compile --batch-mode
+
+      - name: Test
+        run: mvn test --batch-mode
+
+      - name: Package
+        run: mvn package --batch-mode -DskipTests
+
+      - name: Format check (Spotless)
+        run: mvn spotless:check --batch-mode
+        continue-on-error: true

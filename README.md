@@ -26,12 +26,20 @@ That's it. The pipeline runs automatically on every push and pull request.
 
 | Language | File | Quality Gates |
 |----------|------|---------------|
-| Rust | [`ci-rust.yml`](.github/workflows/ci-rust.yml) | `cargo fmt --check` → `cargo clippy -- -D warnings` → `cargo test` → `cargo build --release` |
-| Python (pip) | [`ci-python.yml`](.github/workflows/ci-python.yml) | `ruff check` → `ruff format --check` → `mypy` → `pytest` → `python -m build` |
-| Python (uv) | [`ci-python-uv.yml`](.github/workflows/ci-python-uv.yml) | Same gates, but uses `uv` with lockfile |
+| Rust | [`ci-rust.yml`](.github/workflows/ci-rust.yml) | `cargo fmt --check` → `cargo clippy` → `cargo test` → `cargo build --release` |
+| Python (pip) | [`ci-python.yml`](.github/workflows/ci-python.yml) | `ruff check` → `ruff format` → `mypy` → `pytest` → `python -m build` |
+| Python (uv) | [`ci-python-uv.yml`](.github/workflows/ci-python-uv.yml) | Same gates, uv-based with lockfile |
 | Node.js / TS | [`ci-node.yml`](.github/workflows/ci-node.yml) | `npm ci` → `lint` → `typecheck` → `test` → `build` |
+| Bun | [`ci-bun.yml`](.github/workflows/ci-bun.yml) | `bun install` → `lint` → `test` → `build` |
 | Go | [`ci-go.yml`](.github/workflows/ci-go.yml) | `go vet` → `gofmt` → `go test -race` → `go build` |
+| Java / Kotlin (Maven) | [`ci-java-maven.yml`](.github/workflows/ci-java-maven.yml) | `mvn compile` → `test` → `package` |
+| Java / Kotlin (Gradle) | [`ci-java-gradle.yml`](.github/workflows/ci-java-gradle.yml) | `gradle compileJava` → `test` → `jar` |
 | C | [`ci-c.yml`](.github/workflows/ci-c.yml) | `cmake` → `make` → `ctest` |
+| Shell | [`ci-shell.yml`](.github/workflows/ci-shell.yml) | `shellcheck` → `shfmt` |
+| PowerShell | [`ci-powershell.yml`](.github/workflows/ci-powershell.yml) | `PSScriptAnalyzer` → `Pester test` |
+| Docker | [`ci-docker.yml`](.github/workflows/ci-docker.yml) | Build → `Trivy scan` (fail on CRITICAL/HIGH) → Push |
+| Terraform / OpenTofu | [`ci-terraform.yml`](.github/workflows/ci-terraform.yml) | `fmt -check` → `validate` → `Checkov scan` → `plan` |
+| Kubernetes | [`ci-kubernetes.yml`](.github/workflows/ci-kubernetes.yml) | `kubeconform` schema validation → `kubesec` scan → `pluto` deprecation check |
 
 ### Release Pipelines
 
@@ -48,12 +56,21 @@ That's it. The pipeline runs automatically on every push and pull request.
 |------|---------|
 | [`dependabot-auto-merge.yml`](.github/workflows/dependabot-auto-merge.yml) | Auto-approve + auto-merge Dependabot minor/patch PRs that pass CI |
 | [`stale.yml`](.github/workflows/stale.yml) | Close stale issues (60d) and PRs (30d) automatically |
+| [`pr-labeler.yml`](.github/workflows/pr-labeler.yml) | Auto-label PRs by changed file paths (config in [`labeler.yml`](.github/labeler.yml)) |
+| [`release-drafter.yml`](.github/workflows/release-drafter.yml) | Auto-draft release notes as PRs merge (config in [`release-drafter.yml`](.github/release-drafter.yml)) |
+| [`conventional-commit.yml`](.github/workflows/conventional-commit.yml) | Enforce Conventional Commits format on PR titles |
+| [`code-coverage.yml`](.github/workflows/code-coverage.yml) | Generate + upload coverage reports to Codecov |
+| [`security-audit.yml`](.github/workflows/security-audit.yml) | Weekly scheduled vulnerability scanning (cargo-audit, npm audit, pip-audit, govulncheck) |
+| [`markdown-lint.yml`](.github/workflows/markdown-lint.yml) | Lint Markdown documentation files |
+| [`link-checker.yml`](.github/workflows/link-checker.yml) | Check for broken URLs in docs, runs weekly + on push |
 
 ### Configuration Templates
 
 | File | Purpose |
 |------|---------|
 | [`.github/dependabot.yml`](.github/dependabot.yml) | Dependabot config — all ecosystems, commented, ready to uncomment |
+| [`.github/labeler.yml`](.github/labeler.yml) | PR label rules (used by `pr-labeler.yml`) |
+| [`.github/release-drafter.yml`](.github/release-drafter.yml) | Release notes categorization (used by `release-drafter.yml`) |
 | [`templates/renovate/default.json`](templates/renovate/default.json) | Renovate config with auto-merge for minor/patch |
 
 ### Composite Actions

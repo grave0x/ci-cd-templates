@@ -1,0 +1,33 @@
+# =============================================================================
+# Release Drafter — automatically draft release notes
+# =============================================================================
+#
+# Copy this file into your repo. Creates a draft release with auto-generated
+# changelog when a new tag is pushed, or updates a draft as PRs merge.
+#
+# Also requires a .github/release-drafter.yml config, see:
+# https://github.com/release-drafter/release-drafter
+# =============================================================================
+
+name: Release Drafter
+
+on:
+  push:
+    branches: [main, master]
+  # Also trigger on tag to publish the draft
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

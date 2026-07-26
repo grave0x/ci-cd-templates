@@ -1,0 +1,80 @@
+# PR label rules matching file paths to labels.
+# Used by .github/workflows/pr-labeler.yml
+#
+# https://github.com/actions/labeler
+
+# Languages / frameworks
+rust:
+  - changed-files:
+      - any-glob-to-any-file: "**/*.rs"
+
+python:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.py"
+          - "**/pyproject.toml"
+          - "**/*.cfg"
+
+javascript:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.{js,ts,jsx,tsx}"
+          - "**/package.json"
+
+go:
+  - changed-files:
+      - any-glob-to-any-file: "**/*.go"
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/Dockerfile"
+          - "**/docker-compose*.yml"
+          - "**/.dockerignore"
+
+terraform:
+  - changed-files:
+      - any-glob-to-any-file: "**/*.tf"
+
+# Areas
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "**/docs/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/.github/workflows/**"
+          - "**/.github/actions/**"
+          - "**/Dockerfile"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/tests/**"
+          - "**/test/**"
+          - "**/*_test.*"
+          - "**/*_spec.*"
+
+configuration:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.yml"
+          - "**/*.yaml"
+          - "**/*.toml"
+          - "**/*.json"
+          - "**/.env*"
+          - "**/.*ignore"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/Cargo.lock"
+          - "**/package-lock.json"
+          - "**/yarn.lock"
+          - "**/pnpm-lock.yaml"
+          - "**/go.sum"
+          - "**/bun.lock"
+          - "**/uv.lock"
