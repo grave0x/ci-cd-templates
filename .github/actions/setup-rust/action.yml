@@ -1,0 +1,32 @@
+# =============================================================================
+# Composite action: setup-rust
+# Usage in your workflow:
+#
+#   jobs:
+#     ci:
+#       runs-on: ubuntu-latest
+#       steps:
+#         - uses: actions/checkout@v4
+#         - uses: grave0x/ci-cd-templates/.github/actions/setup-rust@main
+# =============================================================================
+
+name: "Setup Rust toolchain"
+description: "Install Rust with clippy + rustfmt and enable caching"
+
+inputs:
+  toolchain:
+    description: "Rust toolchain version"
+    required: false
+    default: "stable"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        components: clippy, rustfmt
+
+    - name: Cache
+      uses: Swatinem/rust-cache@v2

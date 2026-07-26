@@ -1,0 +1,60 @@
+# =============================================================================
+# Rust CI — quality gate for Rust projects
+# =============================================================================
+#
+# Copy this file into your repo as .github/workflows/ci.yml
+# Requires: Cargo.toml at repo root
+#
+# What it does:
+#   - cargo fmt --check    (formatting)
+#   - cargo clippy         (lints, deny warnings)
+#   - cargo test           (unit + integration tests)
+#   - cargo build --release
+#
+# Docs: docs/rust.md
+# =============================================================================
+
+name: CI (Rust)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  quality:
+    name: "Rust ${{ matrix.toolchain }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain: [stable]
+        # Add msrv below when you set your MSRV, e.g.:
+        # toolchain: [stable, "1.82.0"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Test
+        run: cargo test --all-features
+
+      - name: Build (release)
+        run: cargo build --release --all-features

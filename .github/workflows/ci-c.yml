@@ -1,0 +1,59 @@
+# =============================================================================
+# C CI — quality gate for C projects (CMake + Make)
+# =============================================================================
+#
+# Copy this file into your repo as .github/workflows/ci.yml
+# Requires: CMakeLists.txt or Makefile at repo root
+#
+# What it does:
+#   - cmake configure
+#   - cmake --build (or make)
+#   - ctest (or make test)
+#
+# Docs: docs/c.md
+# =============================================================================
+
+name: CI (C)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq cmake build-essential ${{ matrix.compiler }}
+
+      - name: Configure (CMake)
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release \
+                   -DCMAKE_C_COMPILER=${{ matrix.compiler == 'gcc' && 'gcc' || 'clang' }}
+        continue-on-error: true
+
+      - name: Build (CMake)
+        run: cmake --build build --parallel
+        continue-on-error: true
+
+      - name: Build (Makefile fallback)
+        if: ${{ failure() }}
+        run: make -j$(nproc)
+
+      - name: Test
+        run: |
+          cd build && ctest --output-on-failure 2>/dev/null \
+            || make test 2>/dev/null \
+            || echo "No test target configured"

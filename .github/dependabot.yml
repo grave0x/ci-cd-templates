@@ -1,0 +1,69 @@
+# =============================================================================
+# Dependabot — automated dependency updates
+# =============================================================================
+#
+# Copy this file into your repo as .github/dependabot.yml
+# Uncomment and adapt the ecosystems you use. The `directory` is the
+# path to the manifest (usually "/" for the repo root).
+#
+# Docs: https://docs.github.com/en/code-security/dependabot
+# =============================================================================
+
+version: 2
+updates:
+  # ── npm / JavaScript ──────────────────────────────────────────────
+  # - package-ecosystem: npm
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #     day: monday
+  #   open-pull-requests-limit: 5
+  #   groups:
+  #     development-dependencies:
+  #       dependency-type: development
+  #       update-types: ["minor", "patch"]
+  #     production-dependencies:
+  #       dependency-type: production
+  #       update-types: ["minor", "patch"]
+
+  # ── pip / Python ──────────────────────────────────────────────────
+  # - package-ecosystem: pip
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #     day: monday
+  #   open-pull-requests-limit: 5
+  #   groups:
+  #     python-dependencies:
+  #       update-types: ["minor", "patch"]
+
+  # ── Cargo / Rust ──────────────────────────────────────────────────
+  # - package-ecosystem: cargo
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #     day: monday
+  #   open-pull-requests-limit: 5
+
+  # ── Go modules ────────────────────────────────────────────────────
+  # - package-ecosystem: gomod
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #     day: monday
+  #   open-pull-requests-limit: 5
+
+  # ── Docker ────────────────────────────────────────────────────────
+  # - package-ecosystem: docker
+  #   directory: /
+  #   schedule:
+  #     interval: weekly
+  #     day: monday
+
+  # ── GitHub Actions ────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3

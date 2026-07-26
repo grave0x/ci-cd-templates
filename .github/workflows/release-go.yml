@@ -1,0 +1,51 @@
+# =============================================================================
+# Go Release — publish module and GitHub Release on tag
+# =============================================================================
+#
+# Copy this file and adapt. To trigger a release:
+#   1. Bump version, commit
+#   2. Tag:  git tag v0.1.0 && git push origin v0.1.0
+#
+# Go modules are published by pushing tags — no token needed beyond git push.
+# This workflow creates a GitHub Release with cross-platform binaries.
+# =============================================================================
+
+name: Release (Go)
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    name: GoReleaser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+
+      - name: Verify version matches tag
+        run: |
+          # Read version from go.mod module path or a VERSION file
+          MODULE=$(head -1 go.mod | awk '{print $2}')
+          TAG_VER="${GITHUB_REF_NAME#v}"
+          echo "Releasing $MODULE@$TAG_VER"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

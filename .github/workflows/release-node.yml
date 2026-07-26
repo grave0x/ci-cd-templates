@@ -1,0 +1,57 @@
+# =============================================================================
+# Node.js Release — publish to npm on tag
+# =============================================================================
+#
+# Copy this file and adapt. To trigger a release:
+#   1. Bump version in package.json
+#   2. Commit and tag:  git tag v0.1.0 && git push origin v0.1.0
+#
+# Requires:
+#   - NPM_TOKEN secret set in repo settings
+# =============================================================================
+
+name: Release (Node.js)
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify version matches tag
+        run: |
+          PKG_VER=$(node -p "require('./package.json').version")
+          TAG_VER="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VER" != "$TAG_VER" ]; then
+            echo "ERROR: package.json version ($PKG_VER) != tag version ($TAG_VER)"
+            exit 1
+          fi
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Test
+        run: npm test --if-present
+
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

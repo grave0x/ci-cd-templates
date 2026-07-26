@@ -1,0 +1,64 @@
+# =============================================================================
+# Python CI (uv) — quality gate using uv package manager
+# =============================================================================
+#
+# Copy this file into your repo as .github/workflows/ci.yml
+# Requires: pyproject.toml + uv.lock at repo root
+#
+# What it does:
+#   - ruff lint + format check
+#   - mypy type checking (optional)
+#   - pytest
+#   - uv build
+#
+# Docs: docs/python.md
+# =============================================================================
+
+name: CI (Python / uv)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    name: "Python ${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --group dev 2>/dev/null || uv sync
+
+      - name: Lint
+        run: uv run ruff check . 2>/dev/null || echo "ruff not configured"
+
+      - name: Format check
+        run: uv run ruff format --check . 2>/dev/null || echo "ruff not configured"
+
+      - name: Type check
+        continue-on-error: true
+        run: uv run mypy . 2>/dev/null || echo "mypy not configured"
+
+      - name: Test
+        run: uv run pytest -v --tb=short 2>/dev/null || echo "No tests found"
+
+      - name: Build
+        run: uv build

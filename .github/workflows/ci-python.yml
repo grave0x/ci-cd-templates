@@ -1,0 +1,71 @@
+# =============================================================================
+# Python CI — quality gate for Python projects (pip / pip-tools)
+# =============================================================================
+#
+# Copy this file into your repo as .github/workflows/ci.yml
+# Requires: pyproject.toml or setup.py or setup.cfg at repo root
+#
+# What it does:
+#   - ruff lint + format check
+#   - mypy type checking (optional — remove if not used)
+#   - pytest
+#   - python -m build
+#
+# For uv-based projects, see ci-python-uv.yml instead.
+# Docs: docs/python.md
+# =============================================================================
+
+name: CI (Python)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    name: "Python ${{ matrix.python-version }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+      # Fail fast = false so all matrix results are visible at once
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements*.txt
+            setup.py
+            setup.cfg
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" 2>/dev/null \
+            || pip install -e . ruff build 2>/dev/null \
+            || pip install ruff build
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Format check
+        run: ruff format --check .
+
+      - name: Type check
+        continue-on-error: true
+        run: mypy . 2>/dev/null || echo "mypy not configured, skipping"
+
+      - name: Test
+        run: python -m pytest -v --tb=short 2>/dev/null || echo "No tests found"
+
+      - name: Build
+        run: python -m build

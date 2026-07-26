@@ -1,0 +1,60 @@
+# =============================================================================
+# Node.js / TypeScript CI — quality gate for JS/TS projects
+# =============================================================================
+#
+# Copy this file into your repo as .github/workflows/ci.yml
+# Requires: package.json + package-lock.json at repo root
+#
+# What it does (runs only scripts that exist in package.json):
+#   - npm ci
+#   - npm run lint       (if script exists)
+#   - npm run typecheck  (if script exists, fallback: tsc --noEmit)
+#   - npm test           (if script exists)
+#   - npm run build      (if script exists)
+#
+# Docs: docs/node.md
+# =============================================================================
+
+name: CI (Node.js)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    name: "Node ${{ matrix.node-version }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Type check
+        run: |
+          npm run typecheck --if-present \
+            || npx tsc --noEmit 2>/dev/null \
+            || echo "No type checker configured"
+
+      - name: Test
+        run: npm test --if-present
+
+      - name: Build
+        run: npm run build --if-present

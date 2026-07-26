@@ -1,0 +1,57 @@
+# =============================================================================
+# Go CI — quality gate for Go projects
+# =============================================================================
+#
+# Copy this file into your repo as .github/workflows/ci.yml
+# Requires: go.mod at repo root
+#
+# What it does:
+#   - go vet
+#   - go fmt check
+#   - go test (race-enabled)
+#   - go build
+#
+# Docs: docs/go.md
+# =============================================================================
+
+name: CI (Go)
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  quality:
+    name: "Go ${{ matrix.go-version }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.22", "1.23"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Format check
+        run: |
+          if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then
+            gofmt -l .
+            exit 1
+          fi
+
+      - name: Test
+        run: go test -race -count=1 -v ./...
+
+      - name: Build
+        run: go build ./...

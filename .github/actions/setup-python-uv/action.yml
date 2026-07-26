@@ -1,0 +1,39 @@
+# =============================================================================
+# Composite action: setup-python-uv
+# Usage in your workflow:
+#
+#   jobs:
+#     ci:
+#       runs-on: ubuntu-latest
+#       steps:
+#         - uses: actions/checkout@v4
+#         - uses: grave0x/ci-cd-templates/.github/actions/setup-python-uv@main
+#           with:
+#             python-version: "3.12"
+# =============================================================================
+
+name: "Setup Python with uv"
+description: "Install Python and uv, then restore dependencies from uv.lock"
+
+inputs:
+  python-version:
+    description: "Python version"
+    required: false
+    default: "3.12"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Set up Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install dependencies
+      shell: bash
+      run: uv sync --group dev 2>/dev/null || uv sync
